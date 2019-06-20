@@ -8,7 +8,7 @@ import cv2
 import json
 import base64
 
-from aligner import AlignerCPUCaffe, AlignerCPUDlib
+from aligner import AlignerCPUCaffe, AlignerCPUDlib, line_pairs
 
 net = cv2.dnn.readNetFromCaffe('deploy.prototxt', 'res10_300x300_ssd_iter_140000.caffemodel')
 aligner_net = AlignerCPUDlib()
@@ -63,8 +63,23 @@ def detect(image):
 
             keypoints = aligner_net.getKeypoints(image, box.astype("int"))
 
+            reprojectdst, euler_angle = aligner_net.get_head_pose(keypoints)
+
+
             for (x, y) in keypoints:
                 cv2.circle(image, (x, y), 3, (255, 0, 0), -1) 
+
+            for start, end in line_pairs:
+                cv2.line(image, reprojectdst[start], reprojectdst[end], (0, 0, 255))
+
+            print(f"HPE X:{euler_angle[0, 0]}, Y:{euler_angle[1, 0]}, Z:{euler_angle[2, 0]}")
+
+            # cv2.putText(image, "X: " + "{:7.2f}".format(euler_angle[0, 0]), (100, 20), cv2.FONT_HERSHEY_SIMPLEX,
+            #             0.75, (0, 0, 0), thickness=2)
+            # cv2.putText(image, "Y: " + "{:7.2f}".format(euler_angle[1, 0]), (100, 50), cv2.FONT_HERSHEY_SIMPLEX,
+            #             0.75, (0, 0, 0), thickness=2)
+            # cv2.putText(image, "Z: " + "{:7.2f}".format(euler_angle[2, 0]), (100, 80), cv2.FONT_HERSHEY_SIMPLEX,
+            #             0.75, (0, 0, 0), thickness=2)
 
             # first_aligned =  aligner_result
             # cropped_h, cropped_w =  cropped_image.shape[:2]
