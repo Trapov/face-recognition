@@ -2,3 +2,5 @@ opencv-python
 websockets
 dlib
 imutils
+tensorflow
+keras

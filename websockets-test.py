@@ -9,13 +9,23 @@ import json
 import base64
 
 from aligner import AlignerCPUCaffe, AlignerCPUDlib, line_pairs
+from featurizer import FeaturizerCPU
 
 net = cv2.dnn.readNetFromCaffe('deploy.prototxt', 'res10_300x300_ssd_iter_140000.caffemodel')
 aligner_net = AlignerCPUDlib()
+fe = FeaturizerCPU()
 
-print(aligner_net)
+print("INITED!!!")
+
+def distance(a, b):
+    return np.linalg.norm(a-b)
+
+global last_vector
+
+last_vector = []
 
 def detect(image):
+    global last_vector
     (h, w) = image.shape[:2]
 
     # construct a blob from the input image and then perform a forward
@@ -57,14 +67,25 @@ def detect(image):
             # draw the bounding box of the face along with the associated
             # probability
             #y = startY - 10 if startY - 10 > 10 else startY + 10
-            
-            cv2.rectangle(image, (startX, startY), (endX, endY),
-                (0, 0, 255), 5)
 
             keypoints = aligner_net.getKeypoints(image, box.astype("int"))
 
             reprojectdst, euler_angle = aligner_net.get_head_pose(keypoints)
 
+            aligned_face = aligner_net.align_face(keypoints, image)
+
+            if len(last_vector) == 0:
+                last_vector = fe.get_vector(aligned_face)
+            else:
+                new_vector = fe.get_vector(aligned_face)
+                print("DISTANCE", distance(last_vector, new_vector))
+                last_vector = new_vector
+
+            #print("FEATURES", fe.get_vector(aligned_face))
+            #cv2.imwrite('aligned.jpeg', aligned_face)
+
+            cv2.rectangle(image, (startX, startY), (endX, endY),
+                (0, 0, 255), 5)
 
             for (x, y) in keypoints:
                 cv2.circle(image, (x, y), 3, (255, 0, 0), -1) 
